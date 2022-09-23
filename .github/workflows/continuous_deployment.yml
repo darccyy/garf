@@ -9,20 +9,26 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions-rs/toolchain@v1
+      - name: Add wasm32
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
 
-      - uses: jetli/trunk-action@v0.1.0
-      - uses: jetli/wasm-bindgen-action@v0.1.0
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.1.0
+      - name: Install wasm-bindgen
+        uses: jetli/wasm-bindgen-action@v0.1.0
 
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - run: trunk build --release
+      - name: Build
+        run: trunk build --release
 
-      - uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
         if: github.ref == 'refs/heads/main'
         with:
-          github_token: $
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
