@@ -23,8 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      # public-url must be repo name
       - name: Build
-        run: trunk build --release --public-url .
+        run: trunk build --release --public-url garf
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
