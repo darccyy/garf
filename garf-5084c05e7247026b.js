@@ -754,7 +754,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('garf-7c99e8d875794be8_bg.wasm', import.meta.url);
+        input = new URL('garf-5084c05e7247026b_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
