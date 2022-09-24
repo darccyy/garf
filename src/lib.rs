@@ -55,17 +55,14 @@ pub fn date_to_string(date: Date<Utc>, sep: &str, fill: bool) -> String {
 
 /// Quick fetch function
 async fn fetch(url: &str) -> Result<String, reqwest::Error> {
-  Ok(
-    reqwest::Client::new()
-      .get(url)
-      .header(
-        "x-cors-grida-api-key",
-        "77a0175b-4435-49b0-ad18-52d2dea5a548",
-      )
-      .send()
-      .await?
-      .text()
-      .await?,
-  )
-  // Ok(reqwest::get(url).await?.text().await?)
+  reqwest::Client::new()
+    .get(url)
+    .header(
+      "x-cors-grida-api-key",
+      "77a0175b-4435-49b0-ad18-52d2dea5a548",
+    )
+    .send()
+    .await?
+    .text()
+    .await
 }
