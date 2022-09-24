@@ -8,18 +8,27 @@ const BASE_URL: &str = "https://cors.bridged.cc/https://www.gocomics.com/garfiel
 
 /// Get random `Date<Utc>` between `FIRST_DATE` and current date (`Utc::now()`)
 pub fn random_date() -> Date<Utc> {
-  let num = rand::thread_rng().gen_range(
-    NaiveDate::parse_from_str(FIRST_DATE, "%Y-%m-%d")
-      .expect("First date not properly formatted")
-      .and_hms(0, 0, 0)
-      .timestamp()..=Utc::now().timestamp(),
-  );
-  Utc.timestamp(num, 0).date()
+  Utc
+    .timestamp(
+      rand::thread_rng().gen_range(
+        NaiveDate::parse_from_str(FIRST_DATE, "%Y-%m-%d")
+          .expect("First date not properly formatted")
+          .and_hms(0, 0, 0)
+          .timestamp()..=Utc::now().timestamp(),
+      ),
+      0,
+    )
+    .date()
+}
+
+/// Get today's date as `Date<Utc>`
+pub fn today_date() -> Date<Utc> {
+  Utc::now().date()
 }
 
 /// Fetch url of comic image file from `Date<Utc>`
 pub async fn get_comic_url(date: Date<Utc>) -> Result<String, String> {
-  let url = BASE_URL.to_string() + &date_to_string(date, "/");
+  let url = BASE_URL.to_string() + &date_to_string(date, "/", false);
   let body = match fetch(&url).await {
     Ok(url) => url,
     Err(err) => return Err(err.to_string()),
@@ -32,8 +41,16 @@ pub async fn get_comic_url(date: Date<Utc>) -> Result<String, String> {
 }
 
 /// Convert `Date<Utc>` to string separated by given character
-pub fn date_to_string(date: Date<Utc>, sep: &str) -> String {
-  date.year().to_string() + sep + &date.month().to_string() + sep + &date.day().to_string()
+pub fn date_to_string(date: Date<Utc>, sep: &str, fill: bool) -> String {
+  let month = date.month();
+  let day = date.day();
+  date.year().to_string()
+    + sep
+    + if fill && month < 10 { "0" } else { "" }
+    + &month.to_string()
+    + sep
+    + if fill && day < 10 { "0" } else { "" }
+    + &day.to_string()
 }
 
 /// Quick fetch function

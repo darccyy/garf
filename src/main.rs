@@ -1,56 +1,101 @@
 use yew::prelude::*;
-use yew_hooks::use_async;
+use yew_hooks::{use_async, use_is_first_mount};
 
 #[function_component(App)]
 fn app() -> Html {
-  let date = garf::random_date();
+  // Set dates for today and random
+  //? Remove
+  let today = garf::today_date();
+  let random = garf::random_date();
 
-  let state = use_async( garf::get_comic_url(date) );
+  // Create date state
+  let date = use_state(|| random);
 
-  let onclick = {
-    let state = state.clone();
+  // Create async fetch hook
+  let state = use_async(garf::get_comic_url(*date));
+  // Run if initial component mount (page load)
+  if use_is_first_mount() {
+    state.run();
+  }
+
+  // State of if new image has finished loading
+  //TODO Set `false` when new image loads
+  let image_loaded = use_state(|| false);
+  let onload_image = {
+    let image_loaded = image_loaded.clone();
     Callback::from(move |_| {
-      state.run();
+      image_loaded.set(true);
     })
   };
+
+  // Create onclick event for random button
+  let onclick_random = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |_| {
+      date.set(garf::random_date());
+      state.run();
+      image_loaded.set(false);
+    })
+  };
+  // Create onclick event for today button
+  let onclick_today = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |_| {
+      date.set(today);
+      state.run();
+      image_loaded.set(false);
+    })
+  };
+
+  // Format date as string for <input/>
+  let date_str = garf::date_to_string(*date, "-", true);
 
   html! {
     <>
       <h1>{ "Garf" }</h1>
-      <p>{ date }</p>
-      <button {onclick}>{ "Run" }</button>
-      <p>
+
+      /*TODO Run when <input /> changes */
+      <input type="date" value={ date_str } />
+      <button onclick={onclick_random}>{ "Random Date" }</button>
+      <button onclick={onclick_today}>{ "Today" }</button>
+
+      <p class="loading">
         {
           if state.loading {
-            html! { "Loading..." }
+            "Loading url..."
           } else {
-            html! { "Not loading." }
+            if !*image_loaded {
+              "Loading image..."
+            } else {
+              "Finished."
+            }
           }
         }
       </p>
-      <p>
-        {
-          if let Some(error) = &state.error {
-            html! { error }
-          } else {
-            html! { "No error." }
-          }
-        }
+
+      <p class="error">
+        { if let Some(error) = &state.error { error } else { "" } }
       </p>
+
       <p>
         {
-          if let Some(data) = &state.data {
-            html! { 
-              <>
-                { data }
-                <img src={ data.to_owned() } />
-              </>
+          if let Some(url) = &state.data {
+            html! {
+              <a class="image" href={ url.to_owned() } target="_blank">
+                <img src={ url.to_owned() } onload={onload_image} />
+              </a>
             }
           } else {
-            html! { "No result." }
+            html! { }
           }
         }
       </p>
+
+      /*TODO Previous comics */
     </>
   }
 }
