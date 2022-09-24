@@ -1,5 +1,6 @@
 use yew::prelude::*;
 use yew_hooks::{use_async, use_is_first_mount};
+use web_sys::HtmlInputElement;
 
 #[function_component(App)]
 fn app() -> Html {
@@ -54,12 +55,24 @@ fn app() -> Html {
   // Format date as string for <input/>
   let date_str = garf::date_to_string(*date, "-", true);
 
+  // When date input changes
+  let onchange_input = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |e: Event| {
+      let target: HtmlInputElement = e.target_unchecked_into();
+      date.set(garf::input_string_to_date(&target.value()).expect("Input date not properly formatted"));
+      state.run();
+      image_loaded.set(false);
+    })
+  };
+
   html! {
     <>
       <h1>{ "Garf" }</h1>
 
-      /*TODO Run when <input /> changes */
-      <input type="date" value={ date_str } />
+      <input type="date" value={ date_str } onchange={onchange_input} />
       <button onclick={onclick_random}>{ "Random Date" }</button>
       <button onclick={onclick_today}>{ "Today" }</button>
 

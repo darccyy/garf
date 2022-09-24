@@ -21,6 +21,14 @@ pub fn random_date() -> Date<Utc> {
     .date()
 }
 
+/// Parse `Date<Utc>` from string
+pub fn input_string_to_date(s: &str) -> Result<Date<Utc>, String> {
+  match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+    Ok(d) => Ok(Utc.from_utc_date(&d)),
+    Err(err) => Err(err.to_string()),
+  }
+}
+
 /// Get today's date as `Date<Utc>`
 pub fn today_date() -> Date<Utc> {
   Utc::now().date()

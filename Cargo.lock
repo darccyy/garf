@@ -195,6 +195,7 @@ dependencies = [
  "getrandom",
  "rand",
  "reqwest",
+ "web-sys",
  "yew",
  "yew-hooks",
 ]
