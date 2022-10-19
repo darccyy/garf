@@ -21,6 +21,11 @@ pub fn random_date() -> Date<Utc> {
     .date()
 }
 
+/// Get first date
+pub fn first_date() -> Date<Utc> {
+  input_string_to_date(FIRST_DATE).expect("First date not properly formatted")
+}
+
 /// Parse `Date<Utc>` from string
 pub fn input_string_to_date(s: &str) -> Result<Date<Utc>, String> {
   match NaiveDate::parse_from_str(s, "%Y-%m-%d") {

@@ -1,3 +1,4 @@
+use chrono::Duration;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_hooks::{use_async, use_is_first_mount};
@@ -6,8 +7,9 @@ use yew_hooks::{use_async, use_is_first_mount};
 fn app() -> Html {
   // Set dates for today and random
   //? Remove
-  let today = garf::today_date();
+  let first = garf::first_date();
   let random = garf::random_date();
+  let today = garf::today_date();
 
   // Create date state
   let date = use_state(|| random);
@@ -29,6 +31,17 @@ fn app() -> Html {
     })
   };
 
+  // Create onclick event for first date button
+  let onclick_first = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |_| {
+      date.set(first);
+      state.run();
+      image_loaded.set(false);
+    })
+  };
   // Create onclick event for random button
   let onclick_random = {
     let date = date.clone();
@@ -51,6 +64,33 @@ fn app() -> Html {
       image_loaded.set(false);
     })
   };
+
+  // Create onclick event for previous button
+  let onclick_prev = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |_| {
+      date.set(*date - Duration::days(1));
+      state.run();
+      image_loaded.set(false);
+    })
+  };
+  // Create onclick event for next button
+  let onclick_next = {
+    let date = date.clone();
+    let state = state.clone();
+    let image_loaded = image_loaded.clone();
+    Callback::from(move |_| {
+      date.set(*date + Duration::days(1));
+      state.run();
+      image_loaded.set(false);
+    })
+  };
+
+  // If current date is first ever date, or today, respectively
+  let is_disabled_prev = *date == first;
+  let is_disabled_next = *date == today;
 
   // Format date as string for <input/>
   let date_str = garf::date_to_string(*date, "-", true);
@@ -75,8 +115,12 @@ fn app() -> Html {
       <h1>{ "Garf" }</h1>
 
       <input type="date" value={ date_str } onchange={onchange_input} />
+      <button onclick={onclick_first}>{ "First" }</button>
       <button onclick={onclick_random}>{ "Random Date" }</button>
       <button onclick={onclick_today}>{ "Today" }</button>
+
+      <button onclick={onclick_prev} disabled={is_disabled_prev}>{ "<" }</button>
+      <button onclick={onclick_next} disabled={is_disabled_next}>{ ">" }</button>
 
       <p class="loading">
         {
