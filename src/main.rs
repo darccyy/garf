@@ -1,23 +1,115 @@
-use chrono::Duration;
+use chrono::{Date, Duration, Utc};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_hooks::{use_async, use_is_first_mount};
 
-#[function_component(App)]
-fn app() -> Html {
-  // Set dates for today and random
-  //? Remove
-  let first = garf::first_date();
-  let random = garf::random_date();
-  let today = garf::today_date();
+//TODO Move all components to comps.rs module
 
-  // Create date state
-  let date = use_state(|| random);
+/// Kind of action to set new date
+enum SetDate {
+  Today,
+  Random,
+  Prev,
+  Next,
+  Custom(Event),
+}
+
+/// Whole app (OOP)
+struct App {
+  date: Date<Utc>,
+}
+
+impl Component for App {
+  type Message = SetDate;
+  type Properties = ();
+
+  fn create(_ctx: &Context<Self>) -> Self {
+    console_log::init_with_level(log::Level::Debug).expect("error initializing log");
+
+    Self {
+      date: garf::today_date(),
+    }
+  }
+
+  fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    match msg {
+      SetDate::Today => {
+        self.date = garf::today_date();
+        true
+      }
+      SetDate::Random => {
+        self.date = garf::random_date();
+        true
+      }
+      SetDate::Prev => {
+        self.date -= Duration::days(1);
+        true
+      }
+      SetDate::Next => {
+        self.date += Duration::days(1);
+        true
+      }
+      SetDate::Custom(e) => {
+        let target: HtmlInputElement = e.target_unchecked_into();
+        self.date =
+          garf::input_string_to_date(&target.value()).expect("Input date not properly formatted");
+        true
+      }
+    }
+  }
+
+  fn view(&self, ctx: &Context<Self>) -> Html {
+    let link = ctx.link();
+    let date_str = garf::date_to_string(self.date, "-", true);
+
+    html! {
+      <>
+        <h1>{ "Garf" }</h1>
+
+        // Change date actions
+        <div class="date">
+          <input type="date" value={ date_str } onchange={link.callback(|e| SetDate::Custom(e) )} />
+
+          <button onclick={link.callback(|_| SetDate::Today)}>{  "Today"  }</button>
+          <button onclick={link.callback(|_| SetDate::Random)}>{ "Random" }</button>
+          <button onclick={link.callback(|_| SetDate::Prev)}>{   "Prev"   }</button>
+          <button onclick={link.callback(|_| SetDate::Next)}>{   "Next"   }</button>
+        </div>
+
+        // Comic component
+        <Comic date={ self.date } />
+      </>
+    }
+  }
+}
+
+/// Properties parameter for `Comic` component
+#[derive(Properties, PartialEq)]
+struct ComicProps {
+  date: Date<Utc>,
+}
+
+/// Must be functional for `use_async` hook
+#[function_component(Comic)]
+fn comic(props: &ComicProps) -> Html {
+  log::debug!("Run comic {}", props.date);
 
   // Create async fetch hook
-  let state = use_async(garf::get_comic_url(*date));
+  let state = use_async(garf::get_comic_url(props.date));
+
   // Run if initial component mount (page load)
   if use_is_first_mount() {
+    log::debug!("First run state {}", props.date);
+    state.run();
+  }
+
+  // Create cache for date
+  let date_cache = use_state(|| props.date);
+
+  // Run if date is different that cache (last load)
+  if *date_cache != props.date {
+    log::debug!("Other run state {}", props.date);
+    date_cache.set(props.date);
     state.run();
   }
 
@@ -31,97 +123,13 @@ fn app() -> Html {
     })
   };
 
-  // Create onclick event for first date button
-  let onclick_first = {
-    let date = date.clone();
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |_| {
-      date.set(first);
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-  // Create onclick event for random button
-  let onclick_random = {
-    let date = date.clone();
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |_| {
-      date.set(garf::random_date());
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-  // Create onclick event for today button
-  let onclick_today = {
-    let date = date.clone();
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |_| {
-      date.set(today);
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-
-  // Create onclick event for previous button
-  let onclick_prev = {
-    let date = date.clone();
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |_| {
-      date.set(*date - Duration::days(1));
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-  // Create onclick event for next button
-  let onclick_next = {
-    let date = date.clone();
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |_| {
-      date.set(*date + Duration::days(1));
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-
-  // If current date is first ever date, or today, respectively
-  let is_disabled_prev = *date == first;
-  let is_disabled_next = *date == today;
-
-  // Format date as string for <input/>
-  let date_str = garf::date_to_string(*date, "-", true);
-
-  // When date input changes
-  let onchange_input = {
-    let date = date;
-    let state = state.clone();
-    let image_loaded = image_loaded.clone();
-    Callback::from(move |e: Event| {
-      let target: HtmlInputElement = e.target_unchecked_into();
-      date.set(
-        garf::input_string_to_date(&target.value()).expect("Input date not properly formatted"),
-      );
-      state.run();
-      image_loaded.set(false);
-    })
-  };
-
   html! {
-    <>
-      <h1>{ "Garf" }</h1>
+    <div class="comic">
 
-      <input type="date" value={ date_str } onchange={onchange_input} />
-      <button onclick={onclick_first}>{ "First" }</button>
-      <button onclick={onclick_random}>{ "Random Date" }</button>
-      <button onclick={onclick_today}>{ "Today" }</button>
+      // * Debug
+      <p>{ garf::date_to_string(props.date, "/", true) }</p>
 
-      <button onclick={onclick_prev} disabled={is_disabled_prev}>{ "<" }</button>
-      <button onclick={onclick_next} disabled={is_disabled_next}>{ ">" }</button>
-
+      // Load status
       <p class="loading">
         {
           if state.loading {
@@ -134,26 +142,25 @@ fn app() -> Html {
         }
       </p>
 
+      // Error status
       <p class="error">
         { if let Some(error) = &state.error { error } else { "" } }
       </p>
 
-      <p>
-        {
-          if let Some(url) = &state.data {
-            html! {
-              <a class="image" href={ url.to_owned() } target="_blank">
-                <img src={ url.to_owned() } onload={onload_image} />
-              </a>
-            }
-          } else {
-            html! { }
+      // Render if image url loaded
+      {
+        if let Some(url) = &state.data {
+          // Link containing image
+          html! {
+            <a class="image" href={ url.to_owned() } target="_blank">
+              <img src={ url.to_owned() } onload={ onload_image } />
+            </a>
           }
+        } else {
+          html! { }
         }
-      </p>
-
-      /*TODO Previous comics */
-    </>
+      }
+    </div>
   }
 }
 
