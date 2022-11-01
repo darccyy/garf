@@ -68,7 +68,7 @@ impl Component for App {
 
         // Change date actions
         <div class="date">
-          <input type="date" value={ date_str } onchange={link.callback(|e| SetDate::Custom(e) )} />
+          <input type="date" value={ date_str } onchange={link.callback(SetDate::Custom)} />
 
           <button onclick={link.callback(|_| SetDate::Today)}>{  "Today"  }</button>
           <button onclick={link.callback(|_| SetDate::Random)}>{ "Random" }</button>
